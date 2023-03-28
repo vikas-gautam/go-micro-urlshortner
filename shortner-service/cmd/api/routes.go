@@ -20,11 +20,12 @@ func routes() http.Handler {
 		MaxAge:           300,
 	}))
 
-	// mux.Use(middleware.Heartbeat("/ping"))
 
-	// mux.Post("/handle", app.HandleSubmission)
+
+	mux.Post("/getshortenurl", urlShortener)
 
 	mux.Get("/health", healthCheck)
+
 
 	return mux
 
