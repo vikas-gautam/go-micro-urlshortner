@@ -20,12 +20,10 @@ func routes() http.Handler {
 		MaxAge:           300,
 	}))
 
-
-
+	mux.Get("/{id}", resolveURL)
 	mux.Post("/getshortenurl", urlShortener)
 
 	mux.Get("/health", healthCheck)
-
 
 	return mux
 
