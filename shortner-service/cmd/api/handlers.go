@@ -11,12 +11,10 @@ import (
 
 var Domain = "http://localhost:8080"
 
-// Healthcheck code
-type HealthPayload struct {
-	Message string
-	Status  int
-}
+// to persist the older's request data
+var mappingList = []MappingURL{}
 
+// Healthcheck code
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	log.Println("shortner-service is healthy and ready to serve")
 	var payload HealthPayload
@@ -24,38 +22,12 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 	payload.Status = http.StatusOK
 	payload.Message = "shortner-service is healthy and ready to serve"
 
-	//w.Write requires []byte data
-	out, err := json.MarshalIndent(payload, "", "\t")
-	if err != nil {
-		log.Println(err)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(out)
+	err := writeJSON(w, http.StatusOK, payload)
 	if err != nil {
 		log.Println(err)
 	}
 
 }
-
-// To take the user's Post request #############################################
-
-type RequestPayload struct {
-	Url string `json:"url"`
-}
-
-type ResponsePayload struct {
-	Url      string `json:"url"`
-	ShortUrl string `json:"shortUrl"`
-}
-
-type MappingURL struct {
-	Url         string `json:"url"`
-	GeneratedId string `json:"generatedId"`
-}
-
-// to persist the older's request data
-var mappingList = []MappingURL{}
 
 func urlShortener(w http.ResponseWriter, r *http.Request) {
 	log.Println("urlShortener called")
@@ -81,23 +53,15 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("printing whole  slice", mappingList)
 
-	//w.Write requires []byte data
-	out, err := json.MarshalIndent(resp, "", "\t")
-	if err != nil {
-		log.Println("error while marshal", err)
-	}
-
-	//returns the shortened url to user as response payload
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(out)
+	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {
 		log.Println(err)
 	}
 
 }
 
-//user hits shortenedURL it should redirect to actual url #########################
-// Logic to resolve generated shortenedURL ########################################
+//user hits shortenedURL it should redirect to actual url
+// Logic to resolve generated shortenedURL
 
 func resolveURL(w http.ResponseWriter, r *http.Request) {
 	log.Println("resolveURL called")
