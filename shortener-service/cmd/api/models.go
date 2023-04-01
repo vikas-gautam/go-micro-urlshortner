@@ -19,4 +19,3 @@ type MappingURL struct {
 	Url         string `json:"url"`
 	GeneratedId string `json:"generatedId"`
 }
-

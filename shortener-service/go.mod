@@ -1,4 +1,4 @@
-module github.com/vikas-gautam/go-micro-urlshortner/shortner-service
+module github.com/vikas-gautam/go-micro-urlshortner/shortener-service
 
 go 1.19
 

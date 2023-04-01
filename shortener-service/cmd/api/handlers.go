@@ -9,18 +9,18 @@ import (
 	"github.com/google/uuid"
 )
 
-var Domain = "http://localhost:8080"
+var Domain = "http://localhost:9090"
 
 // to persist the older's request data
 var mappingList = []MappingURL{}
 
 // Healthcheck code
 func healthCheck(w http.ResponseWriter, r *http.Request) {
-	log.Println("shortner-service is healthy and ready to serve")
+	log.Println("shortener-service is healthy and ready to serve")
 	var payload HealthPayload
 
 	payload.Status = http.StatusOK
-	payload.Message = "shortner-service is healthy and ready to serve"
+	payload.Message = "shortener-service is healthy and ready to serve"
 
 	err := writeJSON(w, http.StatusOK, payload)
 	if err != nil {
