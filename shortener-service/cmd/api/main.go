@@ -11,6 +11,7 @@ import (
 	_ "github.com/jackc/pgconn"
 	_ "github.com/jackc/pgx/v4"
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/data"
 )
 
 const (
@@ -32,6 +33,8 @@ func main() {
 		log.Panic("Can't connect to database postgres")
 	}
 
+	data.Connection(conn)
+
 	// //set up config
 	// app := Config{
 	// 	DB:     conn,
@@ -39,6 +42,7 @@ func main() {
 	// }
 
 	// define http server
+
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", apiPort),
 		Handler: routes(),
