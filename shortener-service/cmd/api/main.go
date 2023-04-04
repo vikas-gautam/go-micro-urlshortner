@@ -21,8 +21,7 @@ const (
 var counts int64
 
 // type Config struct {
-// 	DB     *sql.DB
-// 	Models data.Models
+// 	DB *sql.DB
 // }
 
 func main() {
@@ -33,12 +32,12 @@ func main() {
 		log.Panic("Can't connect to database postgres")
 	}
 
+	// if u not using method
 	data.Connection(conn)
 
 	// //set up config
 	// app := Config{
-	// 	DB:     conn,
-	// 	Models: data.New(conn),
+	// 	DB: conn,
 	// }
 
 	// define http server

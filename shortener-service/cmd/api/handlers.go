@@ -45,25 +45,19 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	//logic to shorten the actual url in the request payload
 	id := uuid.New().String()[:5]
 
-	// var resp data.ResponsePayload
-	// resp.Url = requestData.Url
-	// resp.ShortUrl = Domain + "/" + id
-
 	newMapping := data.MappingURL{Url: requestData.Url, GeneratedId: id}
 
 	//save the mapping into the database
-	InsertedRowID, _ := data.Insert(newMapping)
+	GeneratedId, err := data.InsertUrl(newMapping)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-	log.Println(InsertedRowID)
-
-	// //save the data into the mappingList
-	// mappingList = append(mappingList, newMapping)
-
-	// log.Println("printing whole  slice", mappingList)
-
-	//get data from the database on the basis of the id
-
+	//shortened url has been generated & saved
 	var resp data.ResponsePayload
+	resp.ShortUrl = Domain + "/" + GeneratedId
+	resp.Url = requestData.Url
 
 	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {
@@ -81,17 +75,13 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	log.Println("printing random number id of shortenedURL=>", id)
 
-	foundMatch := false
-	for _, mappedURL := range mappingList {
-		if mappedURL.GeneratedId == id {
-			foundMatch = true
-			log.Println("Redirecting to actual URL", mappedURL.Url)
-			http.Redirect(w, r, mappedURL.Url, http.StatusSeeOther)
-			break
-		}
+	//get data from the database on the basis of the id
+	actual_url, err := data.GetUrlByid(id)
+	if err != nil {
+		log.Println(err)
+		return
 	}
-	if !foundMatch {
-		log.Println("Please provide a valid shortenedURL")
-	}
+
+	http.Redirect(w, r, actual_url, http.StatusSeeOther)
 
 }

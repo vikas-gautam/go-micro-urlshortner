@@ -11,6 +11,10 @@ const dbTimeout = time.Second * 3
 
 var db *sql.DB
 
+func Connection(conn *sql.DB) {
+	db = conn
+}
+
 type MappingURLFromDB struct {
 	Url         string `json:"url"`
 	GeneratedId string `json:"generatedId"`
@@ -36,12 +40,16 @@ type MappingURL struct {
 	GeneratedId string `json:"generatedId"`
 }
 
-func Connection(conn *sql.DB) {
-	db = conn
+type RowFromDB struct {
+	ID           int
+	Url          string
+	generated_id string
+	created_at   time.Time
+	updated_at   time.Time
 }
 
 // Insert inserts a new mappingURL into the database, and returns the ID of the newly inserted row
-func Insert(mapping MappingURL) (int, error) {
+func InsertUrl(mapping MappingURL) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
@@ -59,8 +67,33 @@ func Insert(mapping MappingURL) (int, error) {
 	log.Println(err)
 
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
-	return newID, nil
+	return mapping.GeneratedId, nil
+}
+
+func GetUrlByid(id string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+	query := `select id, url, generated_id, created_at, updated_at from url_mapping where generated_id = $1`
+
+	var data RowFromDB
+
+	row := db.QueryRowContext(ctx, query, id)
+
+	err := row.Scan(
+		&data.ID,
+		&data.Url,
+		&data.generated_id,
+		&data.created_at,
+		&data.updated_at,
+	)
+
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	return data.Url, nil
 }
