@@ -11,7 +11,7 @@ services:
       mode: replicated
       replicas: 1
     environment:
-      DSN: "host=postgres port=5432 user=postgres password=password dbname=url sslmode=disable timezone=UTC connect_timeout=5"
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=urls sslmode=disable timezone=UTC connect_timeout=5"
 
 
   postgres:
@@ -24,7 +24,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: url
+      POSTGRES_DB: urls
     volumes:
         - go-micro-urlshortner:/var/lib/postgresql/data/
 volumes:
