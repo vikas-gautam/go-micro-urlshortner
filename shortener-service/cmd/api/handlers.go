@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var Domain = "http://localhost:9090"
+var FrontendDomain = "http://localhost:8080"
 
 // to persist the older's request data
 var mappingList = []data.MappingURL{}
@@ -56,8 +56,11 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	//shortened url has been generated & saved
 	var resp data.ResponsePayload
-	resp.ShortUrl = Domain + "/" + GeneratedId
-	resp.Url = requestData.Url
+
+	// if u r using shortener-service api
+	resp.ShortUrl = FrontendDomain + "/" + GeneratedId
+
+	resp.ActualURL = requestData.Url
 
 	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {
@@ -82,6 +85,19 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, actual_url, http.StatusSeeOther)
+	//shortened url has been generated & saved
+	var resp data.ResponsePayload
+
+	// if u r using shortener-service api
+	resp.ShortUrl = FrontendDomain + "/" + id
+
+	resp.ActualURL = actual_url
+
+	log.Println("printing response payload", resp)
+
+	err = writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		log.Println(err)
+	}
 
 }

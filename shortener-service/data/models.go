@@ -27,12 +27,13 @@ type HealthPayload struct {
 
 // To take the user's Post request #############################################
 type RequestPayload struct {
-	Url string `json:"url"`
+	Url    string `json:"url"`
+	Domain string `json:"domain"`
 }
 
 type ResponsePayload struct {
-	Url      string `json:"url"`
-	ShortUrl string `json:"shortUrl"`
+	ActualURL string `json:"actualurl"`
+	ShortUrl  string `json:"shortUrl"`
 }
 
 type MappingURL struct {

@@ -11,3 +11,4 @@ Step 2: soda generate fizz CreateUrlMappingTable
 Step 3: write fizz query to create table in up.fizz file - https://gobuffalo.io/documentation/database/fizz/
 Step 4: write fizz query to drop table in down.fizz file
 Step 4: soda migrate
+

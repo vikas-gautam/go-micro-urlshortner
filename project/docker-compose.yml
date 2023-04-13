@@ -1,5 +1,20 @@
 version: '3'
 services:
+
+  frontend:
+    build:
+      context: /home/vikash/go/src/github.com/vikas-gautam/go-micro-urlshortner/frontend
+      dockerfile: /home/vikash/go/src/github.com/vikas-gautam/go-micro-urlshortner/frontend/frontend.dockerfile
+    restart: always
+    ports:
+      - "8080:8080"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      BACKEND_API_URL: "http://shortener-service:8080"
+
+
   shortener-service:
     build:
       context: /home/vikash/go/src/github.com/vikas-gautam/go-micro-urlshortner/shortener-service
