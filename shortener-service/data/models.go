@@ -15,10 +15,53 @@ func Connection(conn *sql.DB) {
 	db = conn
 }
 
-type MappingURLFromDB struct {
-	Url         string `json:"url"`
-	GeneratedId string `json:"generatedId"`
+//#################################################################################
+
+//creating models against database tables
+
+type Users struct {
+	ID         int
+	First_name string
+	Last_name  string
+	Email      string
+	Password   string
+	Status     string
+	Created_at time.Time
+	Updated_at time.Time
 }
+
+type URLMapping struct {
+	ID           int
+	Source_ip    int
+	Generated_id string
+	Url          string
+	User_type    string
+	Email        string
+	Created_at   time.Time
+	Updated_at   time.Time
+}
+
+type UserType struct {
+	ID         int
+	Type       int
+	Created_at time.Time
+	Updated_at time.Time
+}
+
+type URLGenerateRestrictions struct {
+	ID        int
+	Source_ip int
+	Status    string
+	Counter   int
+}
+
+type URLClickCounter struct {
+	ID           int
+	ShortURL     string
+	ClickCounter int
+}
+
+//#########################################################################
 
 type HealthPayload struct {
 	Message string
@@ -27,8 +70,7 @@ type HealthPayload struct {
 
 // To take the user's Post request #############################################
 type RequestPayload struct {
-	Url    string `json:"url"`
-	Domain string `json:"domain"`
+	Url string `json:"url"`
 }
 
 type ResponsePayload struct {
@@ -36,31 +78,21 @@ type ResponsePayload struct {
 	ShortUrl  string `json:"shortUrl"`
 }
 
-type MappingURL struct {
-	Url         string `json:"url"`
-	GeneratedId string `json:"generatedId"`
-}
-
-type RowFromDB struct {
-	ID           int
-	Url          string
-	generated_id string
-	created_at   time.Time
-	updated_at   time.Time
-}
-
 // Insert inserts a new mappingURL into the database, and returns the ID of the newly inserted row
-func InsertUrl(mapping MappingURL) (string, error) {
+func InsertUrl(mapping URLMapping) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
 	var newID int
-	stmt := `insert into url_mapping (url, generated_id, created_at, updated_at)
-		values ($1, $2, $3, $4) returning id`
+	stmt := `insert into url_mapping (source_ip, generated_id, url, user_type, email, created_at, updated_at)
+		values ($1, $2, $3, $4, $5, $6, $7) returning id`
 
 	err := db.QueryRowContext(ctx, stmt,
+		mapping.Source_ip,
+		mapping.Generated_id,
 		mapping.Url,
-		mapping.GeneratedId,
+		mapping.User_type,
+		mapping.Email,
 		time.Now(),
 		time.Now(),
 	).Scan(&newID)
@@ -71,24 +103,27 @@ func InsertUrl(mapping MappingURL) (string, error) {
 		return "", err
 	}
 
-	return mapping.GeneratedId, nil
+	return mapping.Generated_id, nil
 }
 
 func GetUrlByid(id string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
-	query := `select id, url, generated_id, created_at, updated_at from url_mapping where generated_id = $1`
+	query := `select id, source_ip, generated_id, url, user_type, email, created_at, updated_at from url_mapping where generated_id = $1`
 
-	var data RowFromDB
+	var data URLMapping
 
 	row := db.QueryRowContext(ctx, query, id)
 
 	err := row.Scan(
 		&data.ID,
+		&data.Source_ip,
+		&data.Generated_id,
 		&data.Url,
-		&data.generated_id,
-		&data.created_at,
-		&data.updated_at,
+		&data.User_type,
+		&data.Email,
+		&data.Created_at,
+		&data.Updated_at,
 	)
 
 	if err != nil {

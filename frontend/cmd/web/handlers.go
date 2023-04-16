@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"text/template"
 
 	"github.com/go-chi/chi/v5"
@@ -89,7 +91,7 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	log.Println("printing random number id of shortenedURL=>", id)
 
-	BACKEND_SERVICE := "http://shortener-service:8080" + fmt.Sprintf("/"+id)
+	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + fmt.Sprintf("/"+id)
 
 	log.Println(BACKEND_SERVICE)
 
@@ -112,6 +114,11 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("priting actual url fetched from backend - ", resp.ActualURL)
 
-	http.Redirect(w, r, resp.ActualURL, http.StatusSeeOther)
+	rediected_url := resp.ActualURL
+	if !strings.HasPrefix(rediected_url, "http://") && !strings.HasPrefix(rediected_url, "https://") {
+		rediected_url = "http://" + rediected_url
+	}
+
+	http.Redirect(w, r, rediected_url, http.StatusSeeOther)
 
 }

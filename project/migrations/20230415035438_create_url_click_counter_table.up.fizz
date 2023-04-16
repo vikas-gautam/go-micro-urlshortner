@@ -1,0 +1,5 @@
+create_table("url_click_counter") {
+  t.Column("id", "integer", {primary: true})
+  t.Column("short_url", "string", {})
+  t.Column("click_counter", "integer", {})
+}

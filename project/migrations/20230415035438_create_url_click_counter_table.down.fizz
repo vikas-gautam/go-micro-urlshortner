@@ -1,0 +1,1 @@
+drop_table("url_click_counter")

@@ -13,8 +13,8 @@ import (
 
 var FrontendDomain = "http://localhost:8080"
 
-// to persist the older's request data
-var mappingList = []data.MappingURL{}
+// // to persist the older's request data
+// var mappingList = []data.URLMapping{}
 
 // Healthcheck code
 func healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +45,7 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	//logic to shorten the actual url in the request payload
 	id := uuid.New().String()[:5]
 
-	newMapping := data.MappingURL{Url: requestData.Url, GeneratedId: id}
+	newMapping := data.URLMapping{Url: requestData.Url, Generated_id: id}
 
 	//save the mapping into the database
 	GeneratedId, err := data.InsertUrl(newMapping)

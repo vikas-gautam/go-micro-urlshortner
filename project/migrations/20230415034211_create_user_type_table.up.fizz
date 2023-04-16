@@ -1,0 +1,4 @@
+create_table("user_type") {
+  t.Column("id", "integer", {primary: true})
+  t.Column("type", "integer", {})
+}
