@@ -37,7 +37,14 @@ type SuccessResponse struct {
 func urlShortener(w http.ResponseWriter, r *http.Request) {
 	log.Println("fetching response from urlshortener service")
 
-	req, _ := http.NewRequest("POST", "http://shortener-service:8080/getshortenurl", r.Body)
+	//fetch client_ip from request
+	client_ip := r.Header.Get("X-Forwarded-For")
+
+	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + "/getshortenurl"
+	req, _ := http.NewRequest("POST", BACKEND_SERVICE, r.Body)
+	// Set the X-Forwarded-For header
+	req.Header.Set("X-Forwarded-For", client_ip)
+
 	client := &http.Client{}
 	response, err := client.Do(req)
 	if err != nil {

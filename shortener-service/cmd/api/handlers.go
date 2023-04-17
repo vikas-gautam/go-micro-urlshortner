@@ -47,6 +47,11 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	newMapping := data.URLMapping{Url: requestData.Url, Generated_id: id}
 
+	//get the client_ip that we have set up in frontend
+	client_ip := r.Header.Get("X-Forwarded-For")
+
+	log.Println("printing client_ip in backend that we have setup", client_ip)
+
 	//save the mapping into the database
 	GeneratedId, err := data.InsertUrl(newMapping)
 	if err != nil {
@@ -65,6 +70,7 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 }
