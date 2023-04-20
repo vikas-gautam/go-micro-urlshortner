@@ -40,7 +40,9 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	//fetch client_ip from request
 	client_ip := r.Header.Get("X-Forwarded-For")
 
+	//creating backend url
 	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + "/getshortenurl"
+
 	req, _ := http.NewRequest("POST", BACKEND_SERVICE, r.Body)
 	// Set the X-Forwarded-For header
 	req.Header.Set("X-Forwarded-For", client_ip)

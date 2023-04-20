@@ -45,12 +45,12 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	//logic to shorten the actual url in the request payload
 	id := uuid.New().String()[:5]
 
-	newMapping := data.URLMapping{Url: requestData.Url, Generated_id: id}
-
 	//get the client_ip that we have set up in frontend
 	client_ip := r.Header.Get("X-Forwarded-For")
 
-	log.Println("printing client_ip in backend that we have setup", client_ip)
+	log.Println("printing client_ip that we have set in frontend: ", client_ip)
+
+	newMapping := data.URLMapping{Url: requestData.Url, Generated_id: id, Source_ip: client_ip}
 
 	//save the mapping into the database
 	GeneratedId, err := data.InsertUrl(newMapping)
@@ -66,6 +66,19 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	resp.ShortUrl = FrontendDomain + "/" + GeneratedId
 
 	resp.ActualURL = requestData.Url
+
+	//inserting this mapping in click counter
+	var mappingClickCounter data.URLClickCounter
+
+	mappingClickCounter.ShortURL = resp.ShortUrl
+	mappingClickCounter.ClickCounter = 0
+
+	//save the mapping into the database
+	err = data.InsertURLClickCounter(mappingClickCounter)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {
@@ -100,6 +113,17 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	resp.ActualURL = actual_url
 
 	log.Println("printing response payload", resp)
+
+	//logic to count hits of shortURL
+	var UpdateClickCounter data.URLClickCounter
+
+	UpdateClickCounter.ShortURL = resp.ShortUrl
+
+	err = data.UpdateURLClickCounter(UpdateClickCounter.ShortURL)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {

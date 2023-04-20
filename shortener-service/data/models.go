@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"time"
 )
@@ -32,7 +33,7 @@ type Users struct {
 
 type URLMapping struct {
 	ID           int
-	Source_ip    int
+	Source_ip    string
 	Generated_id string
 	Url          string
 	User_type    string
@@ -83,6 +84,8 @@ func InsertUrl(mapping URLMapping) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
+	log.Println(mapping.Source_ip)
+
 	var newID int
 	stmt := `insert into url_mapping (source_ip, generated_id, url, user_type, email, created_at, updated_at)
 		values ($1, $2, $3, $4, $5, $6, $7) returning id`
@@ -104,6 +107,61 @@ func InsertUrl(mapping URLMapping) (string, error) {
 	}
 
 	return mapping.Generated_id, nil
+}
+
+// Insert inserts a new mappingURL into the database, and returns the ID of the newly inserted row
+func InsertURLClickCounter(mapping URLClickCounter) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	var newID int
+
+	query := `insert into url_click_counter (short_url, click_counter, created_at, updated_at)
+		values ($1, $2, $3, $4) returning id`
+
+	err := db.QueryRowContext(ctx, query,
+		mapping.ShortURL,
+		mapping.ClickCounter,
+		time.Now(),
+		time.Now(),
+	).Scan(&newID)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+// update counter value as per query
+func UpdateURLClickCounter(short_url string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	var mapping URLClickCounter
+	mapping.ShortURL = short_url
+
+	query := `select click_counter from url_click_counter where short_url=$1`
+
+	err := db.QueryRowContext(ctx, query,
+		mapping.ShortURL,
+	).Scan(&mapping.ClickCounter)
+
+	if err == sql.ErrNoRows {
+		log.Println("No rows has been matched for given shortURL", err)
+		return fmt.Errorf("no matching row found for short_url=%s", mapping.ShortURL)
+	} else if err != nil {
+		return err
+	}
+
+	// Update the ClickCounter column
+	_, err = db.ExecContext(ctx, "UPDATE url_click_counter SET click_counter = click_counter + 1 WHERE short_url=$1", mapping.ShortURL)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func GetUrlByid(id string) (string, error) {
