@@ -24,6 +24,7 @@ func routes() http.Handler {
 	mux.Post("/getshortenurl", urlShortener)
 
 	mux.Get("/health", healthCheck)
+	mux.Get("/url-total-clicks", urlClickCounter)
 
 	return mux
 

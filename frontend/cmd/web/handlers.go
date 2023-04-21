@@ -131,3 +131,44 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, rediected_url, http.StatusSeeOther)
 
 }
+
+
+
+
+// func urlClickCounter(w http.ResponseWriter, r *http.Request) {
+
+// 	log.Println("fetching response from urlClickCounter service to count clicks")
+
+// 	short_url := r.URL.Query().Get("u")
+
+// 	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + fmt.Sprintf("/"+id)
+
+// 	log.Println(BACKEND_SERVICE)
+
+// 	response, err := http.Get(BACKEND_SERVICE)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return
+// 	}
+
+// 	defer response.Body.Close()
+// 	body, _ := ioutil.ReadAll(response.Body)
+// 	fmt.Println(string(body))
+
+// 	// Unmarshal JSON response into URLCollection struct
+// 	var resp URLCollection
+// 	err = json.Unmarshal(body, &resp)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	log.Println("priting actual url fetched from backend - ", resp.ActualURL)
+
+// 	rediected_url := resp.ActualURL
+// 	if !strings.HasPrefix(rediected_url, "http://") && !strings.HasPrefix(rediected_url, "https://") {
+// 		rediected_url = "http://" + rediected_url
+// 	}
+
+// 	http.Redirect(w, r, rediected_url, http.StatusSeeOther)
+
+// }

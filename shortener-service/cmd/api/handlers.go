@@ -131,3 +131,31 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+func urlClickCounter(w http.ResponseWriter, r *http.Request) {
+	log.Println("resolveURL called")
+
+	short_url := r.URL.Query().Get("u")
+
+	//get data from the database on the basis of the id
+	click_counter, err := data.GetCounterByshortUrl(short_url)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	//shortened url has been generated & saved
+	var resp data.ResponsePayloadUrlCounter
+
+	// if u r using shortener-service api
+	resp.ShortUrl = short_url
+	resp.TotalURLClicks = click_counter
+
+	log.Println("printing response payload", resp)
+
+	err = writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		log.Println(err)
+	}
+
+}

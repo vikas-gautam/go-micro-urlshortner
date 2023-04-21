@@ -50,16 +50,20 @@ type UserType struct {
 }
 
 type URLGenerateRestrictions struct {
-	ID        int
-	Source_ip int
-	Status    string
-	Counter   int
+	ID         int
+	Source_ip  int
+	Status     string
+	Counter    int
+	Created_at time.Time
+	Updated_at time.Time
 }
 
 type URLClickCounter struct {
 	ID           int
 	ShortURL     string
 	ClickCounter int
+	Created_at   time.Time
+	Updated_at   time.Time
 }
 
 //#########################################################################
@@ -77,6 +81,11 @@ type RequestPayload struct {
 type ResponsePayload struct {
 	ActualURL string `json:"actualurl"`
 	ShortUrl  string `json:"shortUrl"`
+}
+
+type ResponsePayloadUrlCounter struct {
+	ShortUrl       string `json:"shortUrl"`
+	TotalURLClicks int    `json:"totalURLClicks"`
 }
 
 // Insert inserts a new mappingURL into the database, and returns the ID of the newly inserted row
@@ -190,4 +199,29 @@ func GetUrlByid(id string) (string, error) {
 	}
 
 	return data.Url, nil
+}
+
+func GetCounterByshortUrl(short_url string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+	query := `select id, short_url, click_counter, created_at, updated_at from url_click_counter where short_url = $1`
+
+	var data URLClickCounter
+
+	row := db.QueryRowContext(ctx, query, short_url)
+
+	err := row.Scan(
+		&data.ID,
+		&data.ShortURL,
+		&data.ClickCounter,
+		&data.Created_at,
+		&data.Updated_at,
+	)
+
+	if err != nil {
+		log.Println(err)
+		return 0, err
+	}
+
+	return data.ClickCounter, nil
 }
