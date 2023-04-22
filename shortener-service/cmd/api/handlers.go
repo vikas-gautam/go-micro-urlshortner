@@ -42,11 +42,34 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 		log.Println("error while decoding", err)
 	}
 
-	//logic to shorten the actual url in the request payload
-	id := uuid.New().String()[:5]
+	// create_table("url_generate_restrictions") {
+	// 	t.Column("id", "integer", {primary: true})
+	// 	t.Column("source_ip", "inet", {})
+	// 	t.Column("Status", "string", {"default": "Active})
+	// 	t.Column("counter", "integer", {})
+	//   }
+
+	//check whether the source_ip exists in the table or not
+	//if exists then increase counter in restriction table and proceed with shorten the url
+	//if not then put counter 1  in URLGenerateRestrictions table
+	//then shorten the url
 
 	//get the client_ip that we have set up in frontend
 	client_ip := r.Header.Get("X-Forwarded-For")
+
+	//Checking whether the request belongs to already existing source ip
+	counter, err := data.CheckSourceIpExistence(client_ip)
+	if err != nil {
+		log.Println("error while checking ip existence in database", err)
+		return
+	}
+
+	var mapping data.URLGenerateRestrictions
+	mapping.Source_ip = client_ip
+	mapping.Counter = counter
+
+	//logic to shorten the actual url in the request payload
+	id := uuid.New().String()[:5]
 
 	log.Println("printing client_ip that we have set in frontend: ", client_ip)
 
@@ -54,6 +77,13 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	//save the mapping into the database
 	GeneratedId, err := data.InsertUrl(newMapping)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	//get data from the database on the basis of the id
+	counter, err := data.GetCounterBysourceIp(client_ip)
 	if err != nil {
 		log.Println(err)
 		return

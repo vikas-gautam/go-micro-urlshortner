@@ -51,7 +51,7 @@ type UserType struct {
 
 type URLGenerateRestrictions struct {
 	ID         int
-	Source_ip  int
+	Source_ip  string
 	Status     string
 	Counter    int
 	Created_at time.Time
@@ -224,4 +224,95 @@ func GetCounterByshortUrl(short_url string) (int, error) {
 	}
 
 	return data.ClickCounter, nil
+}
+
+// GetCounterBysourceIp
+
+// create_table("url_generate_restrictions") {
+// 	t.Column("id", "integer", {primary: true})
+// 	t.Column("source_ip", "inet", {})
+// 	t.Column("Status", "string", {"default": "Active})
+// 	t.Column("counter", "integer", {})
+//   }
+
+func CheckSourceIpExistence(source_ip string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	query := `select counter from url_generate_restrictions where source_ip=$1`
+
+	var data URLGenerateRestrictions
+
+	row := db.QueryRowContext(ctx, query, source_ip)
+
+	err := row.Scan(
+		&data.ID,
+		&data.Source_ip,
+		&data.Counter,
+		&data.Created_at,
+		&data.Updated_at,
+	)
+
+	if err != nil {
+		log.Println(err)
+		return 0, err
+	}
+
+	return data.Counter, nil
+
+}
+
+// Insert inserts a new mappingURL into the database, and returns the ID of the newly inserted row
+func InsertURLGenerateRestrictions(mapping URLGenerateRestrictions) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	var newID int
+
+	query := `insert into url_generate_restrictions (source_ip, Status, counter, created_at, updated_at)
+		values ($1, $2, $3) returning id`
+
+	err := db.QueryRowContext(ctx, query,
+		mapping.Source_ip,
+		mapping.ClickCounter,
+		time.Now(),
+		time.Now(),
+	).Scan(&newID)
+
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
+}
+
+// update counter value as per query
+func UpdateURLClickCounteragain(short_url string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	var mapping URLClickCounter
+	mapping.ShortURL = short_url
+
+	query := `select click_counter from url_click_counter where short_url=$1`
+
+	err := db.QueryRowContext(ctx, query,
+		mapping.ShortURL,
+	).Scan(&mapping.ClickCounter)
+
+	if err == sql.ErrNoRows {
+		log.Println("No rows has been matched for given shortURL", err)
+		return fmt.Errorf("no matching row found for short_url=%s", mapping.ShortURL)
+	} else if err != nil {
+		return err
+	}
+
+	// Update the ClickCounter column
+	_, err = db.ExecContext(ctx, "UPDATE url_click_counter SET click_counter = click_counter + 1 WHERE short_url=$1", mapping.ShortURL)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
