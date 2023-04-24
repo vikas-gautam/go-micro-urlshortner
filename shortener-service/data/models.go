@@ -226,15 +226,6 @@ func GetCounterByshortUrl(short_url string) (int, error) {
 	return data.ClickCounter, nil
 }
 
-// GetCounterBysourceIp
-
-// create_table("url_generate_restrictions") {
-// 	t.Column("id", "integer", {primary: true})
-// 	t.Column("source_ip", "inet", {})
-// 	t.Column("Status", "string", {"default": "Active})
-// 	t.Column("counter", "integer", {})
-//   }
-
 func CheckSourceIpExistence(source_ip string) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
@@ -246,11 +237,7 @@ func CheckSourceIpExistence(source_ip string) (int, error) {
 	row := db.QueryRowContext(ctx, query, source_ip)
 
 	err := row.Scan(
-		&data.ID,
-		&data.Source_ip,
 		&data.Counter,
-		&data.Created_at,
-		&data.Updated_at,
 	)
 
 	if err != nil {
@@ -269,12 +256,13 @@ func InsertURLGenerateRestrictions(mapping URLGenerateRestrictions) error {
 
 	var newID int
 
-	query := `insert into url_generate_restrictions (source_ip, Status, counter, created_at, updated_at)
-		values ($1, $2, $3) returning id`
+	query := `insert into url_generate_restrictions (source_ip, status, counter, created_at, updated_at)
+		values ($1, $2, $3, $4, $5) returning id`
 
 	err := db.QueryRowContext(ctx, query,
 		mapping.Source_ip,
-		mapping.ClickCounter,
+		mapping.Status,
+		mapping.Counter,
 		time.Now(),
 		time.Now(),
 	).Scan(&newID)
@@ -288,28 +276,64 @@ func InsertURLGenerateRestrictions(mapping URLGenerateRestrictions) error {
 }
 
 // update counter value as per query
-func UpdateURLClickCounteragain(short_url string) error {
+func UpdateURLGenerateRestrictions(source_ip string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	var mapping URLClickCounter
-	mapping.ShortURL = short_url
+	var mapping URLGenerateRestrictions
+	mapping.Source_ip = source_ip
 
-	query := `select click_counter from url_click_counter where short_url=$1`
+	query := `select counter from url_generate_restrictions where source_ip=$1`
 
 	err := db.QueryRowContext(ctx, query,
-		mapping.ShortURL,
-	).Scan(&mapping.ClickCounter)
+		mapping.Source_ip,
+	).Scan(&mapping.Counter)
 
 	if err == sql.ErrNoRows {
-		log.Println("No rows has been matched for given shortURL", err)
-		return fmt.Errorf("no matching row found for short_url=%s", mapping.ShortURL)
+		log.Println("No rows has been matched for given source_ip", err)
+		var mappingRestrictions URLGenerateRestrictions
+		mappingRestrictions.Source_ip = source_ip
+		mappingRestrictions.Status = "Active"
+		mappingRestrictions.Counter = 1
+
+		err = InsertURLGenerateRestrictions(mappingRestrictions)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
 	} else if err != nil {
 		return err
 	}
 
 	// Update the ClickCounter column
-	_, err = db.ExecContext(ctx, "UPDATE url_click_counter SET click_counter = click_counter + 1 WHERE short_url=$1", mapping.ShortURL)
+	_, err = db.ExecContext(ctx, "UPDATE url_generate_restrictions SET counter = counter + 1 WHERE source_ip=$1", mapping.Source_ip)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// update counter value as per query
+func UpdateStatusURLGenerateRestrictions(source_ip string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	var mapping URLGenerateRestrictions
+	mapping.Source_ip = source_ip
+
+	// query := `select status from url_generate_restrictions where source_ip=$1`
+
+	// err := db.QueryRowContext(ctx, query,
+	// 	mapping.Source_ip,
+	// ).Scan(&mapping.Status)
+
+	// if err != nil {
+	// 	return err
+	// }
+
+	// Update the status column
+	_, err := db.ExecContext(ctx, "UPDATE url_generate_restrictions SET status= 'Blocked' WHERE source_ip=$1", mapping.Source_ip)
 	if err != nil {
 		return err
 	}

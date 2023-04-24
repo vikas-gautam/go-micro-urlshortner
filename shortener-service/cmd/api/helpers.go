@@ -2,7 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/data"
 )
 
 // writeJSON takes a response status code and arbitrary data and writes a json response to the client
@@ -18,7 +22,6 @@ func writeJSON(w http.ResponseWriter, status int, data any, headers ...http.Head
 		}
 	}
 
-	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_, err = w.Write(out)
@@ -27,4 +30,24 @@ func writeJSON(w http.ResponseWriter, status int, data any, headers ...http.Head
 	}
 
 	return nil
+}
+
+// actual logic to shorten the url
+func shortenURL(request_url string, client_ip string) (string, error) {
+
+	//logic to shorten the actual url in the request payload
+	id := uuid.New().String()[:5]
+
+	log.Println("printing client_ip that we have set in frontend: ", client_ip)
+
+	newMapping := data.URLMapping{Url: request_url, Generated_id: id, Source_ip: client_ip}
+
+	//save the mapping into the database
+	GeneratedId, err := data.InsertUrl(newMapping)
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+	return GeneratedId, nil
+
 }

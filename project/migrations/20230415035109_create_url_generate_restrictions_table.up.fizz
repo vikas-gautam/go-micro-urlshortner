@@ -1,6 +1,6 @@
 create_table("url_generate_restrictions") {
   t.Column("id", "integer", {primary: true})
   t.Column("source_ip", "inet", {})
-  t.Column("Status", "string", {"default": "Active})
+  t.Column("status", "string", {"default": "Active"})
   t.Column("counter", "integer", {})
 }

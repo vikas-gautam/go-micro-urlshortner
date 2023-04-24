@@ -27,7 +27,6 @@ func routes() http.Handler {
 	mux.Post("/getShortUrl", urlShortener)
 	mux.Get("/{id}", resolveURL)
 
-
 	return mux
 
 }

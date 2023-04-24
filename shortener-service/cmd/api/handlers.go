@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/data"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 var FrontendDomain = "http://localhost:8080"
@@ -42,50 +42,43 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 		log.Println("error while decoding", err)
 	}
 
-	// create_table("url_generate_restrictions") {
-	// 	t.Column("id", "integer", {primary: true})
-	// 	t.Column("source_ip", "inet", {})
-	// 	t.Column("Status", "string", {"default": "Active})
-	// 	t.Column("counter", "integer", {})
-	//   }
-
-	//check whether the source_ip exists in the table or not
-	//if exists then increase counter in restriction table and proceed with shorten the url
-	//if not then put counter 1  in URLGenerateRestrictions table
-	//then shorten the url
+	// Initialize GeneratedId to an empty string
+	GeneratedId := ""
 
 	//get the client_ip that we have set up in frontend
 	client_ip := r.Header.Get("X-Forwarded-For")
 
-	//Checking whether the request belongs to already existing source ip
+	//Checking whether the request has already existing source ip
 	counter, err := data.CheckSourceIpExistence(client_ip)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		log.Println("No rows has been matched for given source_ip (new user)\n", err)
+		//that means it's new user
+		GeneratedId, err = shortenURL(requestData.Url, client_ip)
+		if err != nil {
+			log.Println("error while generating short url for new user", err)
+			return
+		}
+	} else if err != nil {
 		log.Println("error while checking ip existence in database", err)
 		return
 	}
 
-	var mapping data.URLGenerateRestrictions
-	mapping.Source_ip = client_ip
-	mapping.Counter = counter
-
-	//logic to shorten the actual url in the request payload
-	id := uuid.New().String()[:5]
-
-	log.Println("printing client_ip that we have set in frontend: ", client_ip)
-
-	newMapping := data.URLMapping{Url: requestData.Url, Generated_id: id, Source_ip: client_ip}
-
-	//save the mapping into the database
-	GeneratedId, err := data.InsertUrl(newMapping)
-	if err != nil {
-		log.Println(err)
+	//check if counter is less than 5
+	if counter < 5 {
+		GeneratedId, err = shortenURL(requestData.Url, client_ip)
+		err = data.UpdateURLGenerateRestrictions(client_ip)
+		if err != nil {
+			log.Println("error while updating counter of matching source_ip", err)
+			return
+		}
 		return
-	}
-
-	//get data from the database on the basis of the id
-	counter, err := data.GetCounterBysourceIp(client_ip)
-	if err != nil {
-		log.Println(err)
+	} else {
+		err = data.UpdateStatusURLGenerateRestrictions(client_ip)
+		log.Println("You have reached the limit, and status has been set to Blocked")
+		if err != nil {
+			log.Println("error while updating status of matching source_ip", err)
+			return
+		}
 		return
 	}
 
