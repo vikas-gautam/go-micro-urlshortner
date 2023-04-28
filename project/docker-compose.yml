@@ -3,8 +3,8 @@ services:
 
   frontend:
     build:
-      context: /home/vikash/go/src/github.com/vikas-gautam/go-micro-urlshortner/frontend
-      dockerfile: /home/vikash/go/src/github.com/vikas-gautam/go-micro-urlshortner/frontend/frontend.dockerfile
+      context: ./../frontend
+      dockerfile: ./../frontend/frontend.dockerfile
     restart: always
     ports:
       - "8080:8080"
@@ -17,8 +17,8 @@ services:
 
   shortener-service:
     build:
-      context: /home/vikash/go/src/github.com/vikas-gautam/go-micro-urlshortner/shortener-service
-      dockerfile: /home/vikash/go/src/github.com/vikas-gautam/go-micro-urlshortner/shortener-service/shortener-service.dockerfile
+      context: ./../shortener-service
+      dockerfile: ./../shortener-service/shortener-service.dockerfile
     restart: always
     ports:
       - "9090:8080"
@@ -41,11 +41,11 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: urls
     volumes:
-        - go-micro-urlshortner:/var/lib/postgresql/data/
+        - go-micro-urlshortener:/var/lib/postgresql/data/
 volumes:
   # go-micro-mongo:
   #   external: true
   # go-micro-rabbitmq:
   #   external: true
-  go-micro-urlshortner:
+  go-micro-urlshortener:
     external: true

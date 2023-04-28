@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/models"
 )
 
 const dbTimeout = time.Second * 3
@@ -16,80 +18,8 @@ func Connection(conn *sql.DB) {
 	db = conn
 }
 
-//#################################################################################
-
-//creating models against database tables
-
-type Users struct {
-	ID         int
-	First_name string
-	Last_name  string
-	Email      string
-	Password   string
-	Status     string
-	Created_at time.Time
-	Updated_at time.Time
-}
-
-type URLMapping struct {
-	ID           int
-	Source_ip    string
-	Generated_id string
-	Url          string
-	User_type    string
-	Email        string
-	Created_at   time.Time
-	Updated_at   time.Time
-}
-
-type UserType struct {
-	ID         int
-	Type       int
-	Created_at time.Time
-	Updated_at time.Time
-}
-
-type URLGenerateRestrictions struct {
-	ID         int
-	Source_ip  string
-	Status     string
-	Counter    int
-	Created_at time.Time
-	Updated_at time.Time
-}
-
-type URLClickCounter struct {
-	ID           int
-	ShortURL     string
-	ClickCounter int
-	Created_at   time.Time
-	Updated_at   time.Time
-}
-
-//#########################################################################
-
-type HealthPayload struct {
-	Message string
-	Status  int
-}
-
-// To take the user's Post request #############################################
-type RequestPayload struct {
-	Url string `json:"url"`
-}
-
-type ResponsePayload struct {
-	ActualURL string `json:"actualurl"`
-	ShortUrl  string `json:"shortUrl"`
-}
-
-type ResponsePayloadUrlCounter struct {
-	ShortUrl       string `json:"shortUrl"`
-	TotalURLClicks int    `json:"totalURLClicks"`
-}
-
 // Insert inserts a new mappingURL into the database, and returns the ID of the newly inserted row
-func InsertUrl(mapping URLMapping) (string, error) {
+func InsertUrl(mapping models.URLMapping) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
@@ -119,7 +49,7 @@ func InsertUrl(mapping URLMapping) (string, error) {
 }
 
 // Insert inserts a new mappingURL into the database, and returns the ID of the newly inserted row
-func InsertURLClickCounter(mapping URLClickCounter) error {
+func InsertURLClickCounter(mapping models.URLClickCounter) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
@@ -148,7 +78,7 @@ func UpdateURLClickCounter(short_url string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	var mapping URLClickCounter
+	var mapping models.URLClickCounter
 	mapping.ShortURL = short_url
 
 	query := `select click_counter from url_click_counter where short_url=$1`
@@ -178,7 +108,7 @@ func GetUrlByid(id string) (string, error) {
 	defer cancel()
 	query := `select id, source_ip, generated_id, url, user_type, email, created_at, updated_at from url_mapping where generated_id = $1`
 
-	var data URLMapping
+	var data models.URLMapping
 
 	row := db.QueryRowContext(ctx, query, id)
 
@@ -206,7 +136,7 @@ func GetCounterByshortUrl(short_url string) (int, error) {
 	defer cancel()
 	query := `select id, short_url, click_counter, created_at, updated_at from url_click_counter where short_url = $1`
 
-	var data URLClickCounter
+	var data models.URLClickCounter
 
 	row := db.QueryRowContext(ctx, query, short_url)
 
@@ -232,7 +162,7 @@ func CheckSourceIpExistence(source_ip string) (int, error) {
 
 	query := `select counter from url_generate_restrictions where source_ip=$1`
 
-	var data URLGenerateRestrictions
+	var data models.URLGenerateRestrictions
 
 	row := db.QueryRowContext(ctx, query, source_ip)
 
@@ -250,7 +180,7 @@ func CheckSourceIpExistence(source_ip string) (int, error) {
 }
 
 // Insert inserts a new mappingURL into the database, and returns the ID of the newly inserted row
-func InsertURLGenerateRestrictions(mapping URLGenerateRestrictions) error {
+func InsertURLGenerateRestrictions(mapping models.URLGenerateRestrictions) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
@@ -280,7 +210,7 @@ func UpdateURLGenerateRestrictions(source_ip string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	var mapping URLGenerateRestrictions
+	var mapping models.URLGenerateRestrictions
 	mapping.Source_ip = source_ip
 
 	query := `select counter from url_generate_restrictions where source_ip=$1`
@@ -291,7 +221,7 @@ func UpdateURLGenerateRestrictions(source_ip string) error {
 
 	if err == sql.ErrNoRows {
 		log.Println("No rows has been matched for given source_ip", err)
-		var mappingRestrictions URLGenerateRestrictions
+		var mappingRestrictions models.URLGenerateRestrictions
 		mappingRestrictions.Source_ip = source_ip
 		mappingRestrictions.Status = "Active"
 		mappingRestrictions.Counter = 1
@@ -319,18 +249,8 @@ func UpdateStatusURLGenerateRestrictions(source_ip string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	var mapping URLGenerateRestrictions
+	var mapping models.URLGenerateRestrictions
 	mapping.Source_ip = source_ip
-
-	// query := `select status from url_generate_restrictions where source_ip=$1`
-
-	// err := db.QueryRowContext(ctx, query,
-	// 	mapping.Source_ip,
-	// ).Scan(&mapping.Status)
-
-	// if err != nil {
-	// 	return err
-	// }
 
 	// Update the status column
 	_, err := db.ExecContext(ctx, "UPDATE url_generate_restrictions SET status= 'Blocked' WHERE source_ip=$1", mapping.Source_ip)

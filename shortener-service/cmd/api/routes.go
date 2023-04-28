@@ -24,6 +24,8 @@ func routes() http.Handler {
 	mux.Post("/getshortenurl", urlShortener)
 
 	mux.Get("/health", healthCheck)
+
+	//https://ngrok-domain/url-total-clicks?u=shortURL
 	mux.Get("/url-total-clicks", urlClickCounter)
 
 	return mux

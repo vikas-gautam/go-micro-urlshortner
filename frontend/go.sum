@@ -2,5 +2,3 @@ github.com/go-chi/chi/v5 v5.0.8 h1:lD+NLqFcAi1ovnVZpsnObHGW4xb4J8lNmoYVfECH1Y0=
 github.com/go-chi/chi/v5 v5.0.8/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
 github.com/go-chi/cors v1.2.1 h1:xEC8UT3Rlp2QuWNEr4Fs/c2EAGVKBwy/1vHx3bppil4=
 github.com/go-chi/cors v1.2.1/go.mod h1:sSbTewc+6wYHBBCW7ytsFSn836hqM7JxpglAy2Vzc58=
-github.com/vikas-gautam/go-micro-urlshortner/shortener-service v0.0.0-20230406045839-33fcf63e06dd h1:sM0OyEKRpkNfpfuGJTAn4Ii+Fg8Uar0drSNRTqSKiV8=
-github.com/vikas-gautam/go-micro-urlshortner/shortener-service v0.0.0-20230406045839-33fcf63e06dd/go.mod h1:pUU4bJKGo5ajAuF3ZqA3Bt/CgPE3kQ4grru9ul8GoL4=
