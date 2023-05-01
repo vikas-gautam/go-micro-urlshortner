@@ -12,7 +12,11 @@ import (
 	"text/template"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/vikas-gautam/go-micro-urlshortner/frontend/cmd/models"
 )
+
+//go:embed templates
+var templateFS embed.FS
 
 // Healthcheck code
 func homepage(w http.ResponseWriter, r *http.Request) {
@@ -20,17 +24,6 @@ func homepage(w http.ResponseWriter, r *http.Request) {
 
 	render(w, "index.html")
 
-}
-
-//go:embed templates
-var templateFS embed.FS
-
-type URLCollection struct {
-	ActualURL string
-	ShortURL  string
-}
-type SuccessResponse struct {
-	Response URLCollection
 }
 
 // urlshortener test
@@ -58,7 +51,7 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(string(body))
 
 	// Unmarshal JSON response into URLCollection struct
-	var resp URLCollection
+	var resp models.URLCollection
 	err = json.Unmarshal(body, &resp)
 	if err != nil {
 		panic(err)
@@ -66,7 +59,7 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	log.Println(resp)
 
-	successResp := SuccessResponse{
+	successResp := models.SuccessResponse{
 		Response: resp,
 	}
 
@@ -115,13 +108,13 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(string(body))
 
 	// Unmarshal JSON response into URLCollection struct
-	var resp URLCollection
+	var resp models.URLCollection
 	err = json.Unmarshal(body, &resp)
 	if err != nil {
 		panic(err)
 	}
 
-	log.Println("priting actual url fetched from backend - ", resp.ActualURL)
+	log.Println("printing actual url fetched from backend - ", resp.ActualURL)
 
 	rediected_url := resp.ActualURL
 	if !strings.HasPrefix(rediected_url, "http://") && !strings.HasPrefix(rediected_url, "https://") {
@@ -131,9 +124,6 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, rediected_url, http.StatusSeeOther)
 
 }
-
-
-
 
 // func urlClickCounter(w http.ResponseWriter, r *http.Request) {
 
@@ -156,7 +146,7 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 // 	fmt.Println(string(body))
 
 // 	// Unmarshal JSON response into URLCollection struct
-// 	var resp URLCollection
+// 	var resp models.URLCollection
 // 	err = json.Unmarshal(body, &resp)
 // 	if err != nil {
 // 		panic(err)
