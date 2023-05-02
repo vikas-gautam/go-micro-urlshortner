@@ -98,7 +98,7 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 			_ = writeJSONerror(w, http.StatusInternalServerError, msg)
 			return
 		}
-		msg := "You have reached the limit, and status has been set to Blocked"
+		msg := "You have reached the limit, please signup and try again"
 		_ = writeJSONerror(w, http.StatusTooManyRequests, msg)
 		return
 	}

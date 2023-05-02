@@ -28,6 +28,19 @@ services:
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=urls sslmode=disable timezone=UTC connect_timeout=5"
 
+  auth-service:
+    build:
+      context: ./../auth-service
+      dockerfile: ./../auth-service/auth-service.dockerfile
+    restart: always
+    ports:
+      - "9091:8080"
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      DSN: "host=postgres port=5432 user=postgres password=password dbname=urls sslmode=disable timezone=UTC connect_timeout=5"
+
 
   postgres:
     image: 'postgres:14.2'

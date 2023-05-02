@@ -10,13 +10,14 @@ import (
 
 type Users struct {
 	ID         int
-	First_name string
-	Last_name  string
-	Email      string
-	Password   string
-	Status     string
-	Created_at time.Time
-	Updated_at time.Time
+	First_name string    `json:"first_name" validate:"required,min=2,max=30"`
+	Last_name  string    `json:"last_name" validate:"required,min=2,max=30"`
+	Email      string    `json:"email"      validate:"email,required"`
+	Password   string    `json:"password"   validate:"required,min=6"`
+	Status     string    `json:"status"`
+	Phone      string    `json:"phone"      validate:"required"`
+	Created_at time.Time `json:"created_at"`
+	Updated_at time.Time `json:"updtaed_at"`
 }
 
 type URLMapping struct {
