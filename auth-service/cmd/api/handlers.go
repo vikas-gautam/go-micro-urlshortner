@@ -1,12 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/vikas-gautam/go-micro-urlshortner/auth-service/cmd/data"
 	"github.com/vikas-gautam/go-micro-urlshortner/auth-service/cmd/models"
 )
 
@@ -50,6 +52,42 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	if validationErr != nil {
 		log.Println("error while validating", validationErr)
 		msg := fmt.Sprintf("error while validating fields in request: %v", validationErr)
+		_ = writeJSONerror(w, http.StatusBadRequest, msg)
+		return
+	}
+
+	//logic to check if user already exists or not
+	emailExists, err := data.GetUserByEmailid(signupPayload.Email)
+	if err != nil && err == sql.ErrNoRows {
+		log.Println(err)
+	}
+
+	//logic to check if user already exists or not
+	phoneExists, err := data.GetUserByPhone(signupPayload.Phone)
+	if err != nil && err == sql.ErrNoRows {
+		log.Println(err)
+	}
+
+	if !emailExists && !phoneExists {
+		//insert data into the database
+		signupPayload.Status = "Active"
+		err = data.InsertSignupData(signupPayload)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	} else {
+		msg := ""
+		if emailExists {
+			msg = fmt.Sprintf("email id: %s already exists", signupPayload.Email)
+		}
+		if phoneExists {
+			if msg != "" {
+				msg += " and "
+			}
+			msg += fmt.Sprintf("phone number: %s already exists", signupPayload.Phone)
+		}
+		log.Println(msg)
 		_ = writeJSONerror(w, http.StatusBadRequest, msg)
 		return
 	}

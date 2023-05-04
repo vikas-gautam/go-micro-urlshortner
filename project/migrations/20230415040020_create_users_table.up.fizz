@@ -5,5 +5,5 @@ create_table("users") {
   t.Column("email", "string", {})
   t.Column("password", "string", {"size": 60})
   t.Column("status", "string", {"default": "active"})
-  t.column("phone", "string", {})
+  t.Column("phone", "string", {})
 }
