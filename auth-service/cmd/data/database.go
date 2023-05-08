@@ -103,3 +103,32 @@ func GetUserByPhone(phone string) (bool, error) {
 
 	return true, nil
 }
+
+func GetHashedPasswordByEmailid(email string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+	query := `select id, first_name, last_name, email, password, status, phone, created_at, updated_at from users where email = $1`
+
+	var data models.Users
+
+	row := db.QueryRowContext(ctx, query, email)
+
+	err := row.Scan(
+		&data.ID,
+		&data.First_name,
+		&data.Last_name,
+		&data.Email,
+		&data.Password,
+		&data.Status,
+		&data.Phone,
+		&data.Created_at,
+		&data.Updated_at,
+	)
+
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+
+	return data.Password, nil
+}

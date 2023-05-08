@@ -21,12 +21,10 @@ func routes() http.Handler {
 	}))
 
 	// mux.Get("/{id}", resolveURL)
-	mux.Post("/signup", signup)
+	mux.Post("/user/signup", signup)
 
 	mux.Get("/health", healthCheck)
-
-	// //https://ngrok-domain/url-total-clicks?u=shortURL
-	// mux.Get("/url-total-clicks", urlClickCounter)
+	mux.Get("/user/login", login)
 
 	return mux
 

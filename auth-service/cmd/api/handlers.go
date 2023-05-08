@@ -33,6 +33,23 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// login function
+func login(w http.ResponseWriter, r *http.Request) {
+	username, password, ok := r.BasicAuth()
+	if !ok {
+		log.Println("Error parsing basic auth")
+		msg := "error parsing basic auth"
+		_ = writeJSONerror(w, http.StatusBadRequest, msg)
+		return
+	}
+	hashedPassword, _ := data.GetHashedPasswordByEmailid(username)
+	match := CheckPasswordHash(password, hashedPassword)
+	if match {
+		msg := "you are successfully logged in"
+		_ = writeJSONerror(w, http.StatusOK, msg)
+	}
+}
+
 // signup func
 func signup(w http.ResponseWriter, r *http.Request) {
 	var signupPayload models.Users
@@ -68,9 +85,15 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 
+	//email not existing and phone exists
 	if !emailExists && !phoneExists {
 		//insert data into the database
 		signupPayload.Status = "Active"
+
+		//make hash out of given password to avoid saving actual password
+		hashedPassword, _ := HashPassword(signupPayload.Password)
+		signupPayload.Password = hashedPassword
+
 		err = data.InsertSignupData(signupPayload)
 		if err != nil {
 			log.Println(err)
@@ -92,9 +115,12 @@ func signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = writeJSON(w, http.StatusOK, signupPayload)
+	resp := fmt.Sprintf("You are successfully signedup and here is your Username: %s", signupPayload.Email)
+	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {
 		log.Println(err)
+		msg := fmt.Sprintf("error while writing json response: %v", err)
+		_ = writeJSONerror(w, http.StatusInternalServerError, msg)
 		return
 	}
 
