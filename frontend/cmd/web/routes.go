@@ -27,6 +27,9 @@ func routes() http.Handler {
 	mux.Post("/getShortUrl", urlShortener)
 	mux.Get("/{id}", resolveURL)
 
+	mux.Post("/user/signup", signup)
+	mux.Get("/user/login", login)
+
 	return mux
 
 }

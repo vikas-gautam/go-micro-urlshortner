@@ -7,3 +7,8 @@ type URLCollection struct {
 type SuccessResponse struct {
 	Response URLCollection
 }
+
+type AuthResponse struct {
+	Status  int
+	Message string
+}

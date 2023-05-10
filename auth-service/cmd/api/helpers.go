@@ -34,7 +34,7 @@ func writeJSON(w http.ResponseWriter, status int, data any, headers ...http.Head
 // writeJSON takes a response status code and arbitrary data and writes a json response to the client
 func writeJSONerror(w http.ResponseWriter, status int, msg string) error {
 
-	var data models.ResponsePayloadError
+	var data models.ResponsePayloadMessage
 	data.Status = status
 	data.Message = msg
 

@@ -13,6 +13,7 @@ services:
       replicas: 1
     environment:
       BACKEND_API_URL: "http://shortener-service:8080"
+      AUTH_API_URL: "http://auth-service:8080"
 
 
   shortener-service:

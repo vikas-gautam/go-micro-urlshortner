@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -93,7 +94,8 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	log.Println("printing random number id of shortenedURL=>", id)
 
-	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + fmt.Sprintf("/"+id)
+	//creating backend url
+	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + "/signup"
 
 	log.Println(BACKEND_SERVICE)
 
@@ -125,40 +127,85 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// func urlClickCounter(w http.ResponseWriter, r *http.Request) {
+func signup(w http.ResponseWriter, r *http.Request) {
+	log.Println("fetching response from auth service to get authenticated")
 
-// 	log.Println("fetching response from urlClickCounter service to count clicks")
+	//creating backend url
+	AUTH_SERVICE := os.Getenv("AUTH_API_URL") + "/user/signup"
 
-// 	short_url := r.URL.Query().Get("u")
+	req, _ := http.NewRequest("POST", AUTH_SERVICE, r.Body)
 
-// 	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + fmt.Sprintf("/"+id)
+	client := &http.Client{}
+	response, err := client.Do(req)
+	if err != nil {
+		log.Println("error while making request to auth svc", err)
+	}
 
-// 	log.Println(BACKEND_SERVICE)
+	defer response.Body.Close()
+	body, _ := ioutil.ReadAll(response.Body)
+	fmt.Println(string(body))
 
-// 	response, err := http.Get(BACKEND_SERVICE)
-// 	if err != nil {
-// 		log.Println(err)
-// 		return
-// 	}
+	// Unmarshal JSON response into  struct
+	var resp models.AuthResponse
+	err = json.Unmarshal(body, &resp)
+	if err != nil {
+		panic(err)
+	}
 
-// 	defer response.Body.Close()
-// 	body, _ := ioutil.ReadAll(response.Body)
-// 	fmt.Println(string(body))
+	err = writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		log.Println("error while writing json response to frontend request", err)
+	}
 
-// 	// Unmarshal JSON response into URLCollection struct
-// 	var resp models.URLCollection
-// 	err = json.Unmarshal(body, &resp)
-// 	if err != nil {
-// 		panic(err)
-// 	}
+}
 
-// 	log.Println("priting actual url fetched from backend - ", resp.ActualURL)
+func login(w http.ResponseWriter, r *http.Request) {
 
-// 	rediected_url := resp.ActualURL
-// 	if !strings.HasPrefix(rediected_url, "http://") && !strings.HasPrefix(rediected_url, "https://") {
-// 		rediected_url = "http://" + rediected_url
-// 	}
+	//creating backend url
+	AUTH_SERVICE := os.Getenv("AUTH_API_URL") + "/user/login"
 
-// 	http.Redirect(w, r, rediected_url, http.StatusSeeOther)
+	req, err := http.NewRequest("GET", AUTH_SERVICE, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-// }
+	username, password, ok := r.BasicAuth()
+	log.Printf("username: %v, password: %v, ok: %v", username, password, ok)
+
+	u := username
+	p := password
+	auth := u + ":" + p
+	basicAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
+
+	req.Header.Add("Authorization", basicAuth)
+
+	log.Println("hitting auth service to login")
+
+	log.Println(AUTH_SERVICE)
+	response, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	defer response.Body.Close()
+	body, _ := ioutil.ReadAll(response.Body)
+	fmt.Println(string(body))
+
+	// Unmarshal JSON response into auth struct
+	var resp models.AuthResponse
+	err = json.Unmarshal(body, &resp)
+	if err != nil {
+		panic(err)
+	}
+
+	log.Println(resp)
+
+	err = writeJSON(w, http.StatusOK, resp)
+	if err != nil {
+		log.Println("error while writing json response to frontend request", err)
+	}
+
+}

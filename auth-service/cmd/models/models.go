@@ -74,7 +74,7 @@ type ResponsePayload struct {
 	ShortUrl  string `json:"shortUrl"`
 }
 
-type ResponsePayloadError struct {
+type ResponsePayloadMessage struct {
 	Status  int
 	Message string
 }
