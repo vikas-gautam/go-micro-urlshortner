@@ -22,7 +22,7 @@ func routes() http.Handler {
 
 	// mux.Get("/{id}", resolveURL)
 	mux.Post("/user/signup", signup)
-	mux.Get("/user/login", login)
+	mux.Get("/user/auth", auth)
 
 	mux.Get("/health", healthCheck)
 

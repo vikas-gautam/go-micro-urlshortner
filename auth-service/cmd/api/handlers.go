@@ -34,7 +34,7 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 // login function
-func login(w http.ResponseWriter, r *http.Request) {
+func auth(w http.ResponseWriter, r *http.Request) {
 
 	username, password, ok := r.BasicAuth()
 	log.Printf("username: %v, password: %v, ok: %v", username, password, ok)

@@ -29,6 +29,25 @@ func homepage(w http.ResponseWriter, r *http.Request) {
 
 // urlshortener test
 func urlShortener(w http.ResponseWriter, r *http.Request) {
+
+	//checking whether the user is guest or signedup
+
+	username, password, ok := r.BasicAuth()
+	log.Printf("username: %v, password: %v, ok: %v", username, password, ok)
+
+	if ok {
+		resp := userauth(username, password)
+		fmt.Fprintf(w, "Authenticated successfully, welcome %s\n", username)
+
+		err := writeJSON(w, http.StatusOK, resp)
+		if err != nil {
+			log.Println("error while writing json response to frontend request", err)
+		}
+	} else {
+		fmt.Printf("Basic Auth header not present so proceeding as a guest user")
+
+	}
+
 	log.Println("fetching response from urlshortener service")
 
 	//fetch client_ip from request
@@ -159,19 +178,16 @@ func signup(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
+func userauth(username, password string) models.AuthResponse {
 
 	//creating backend url
-	AUTH_SERVICE := os.Getenv("AUTH_API_URL") + "/user/login"
+	AUTH_SERVICE := os.Getenv("AUTH_API_URL") + "/user/auth"
 
 	req, err := http.NewRequest("GET", AUTH_SERVICE, nil)
 	if err != nil {
 		log.Println(err)
-		return
+		panic(err)
 	}
-
-	username, password, ok := r.BasicAuth()
-	log.Printf("username: %v, password: %v, ok: %v", username, password, ok)
 
 	u := username
 	p := password
@@ -187,7 +203,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Println(err)
-		return
+		panic(err)
 	}
 
 	defer response.Body.Close()
@@ -202,10 +218,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println(resp)
-
-	err = writeJSON(w, http.StatusOK, resp)
-	if err != nil {
-		log.Println("error while writing json response to frontend request", err)
-	}
+	return resp
 
 }
