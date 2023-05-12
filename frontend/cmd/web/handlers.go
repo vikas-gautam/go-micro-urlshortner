@@ -31,24 +31,8 @@ func homepage(w http.ResponseWriter, r *http.Request) {
 func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	//checking whether the user is guest or signedup
-
 	username, password, ok := r.BasicAuth()
 	log.Printf("username: %v, password: %v, ok: %v", username, password, ok)
-
-	if ok {
-		resp := userauth(username, password)
-		fmt.Fprintf(w, "Authenticated successfully, welcome %s\n", username)
-
-		err := writeJSON(w, http.StatusOK, resp)
-		if err != nil {
-			log.Println("error while writing json response to frontend request", err)
-		}
-	} else {
-		fmt.Printf("Basic Auth header not present so proceeding as a guest user")
-
-	}
-
-	log.Println("fetching response from urlshortener service")
 
 	//fetch client_ip from request
 	client_ip := r.Header.Get("X-Forwarded-For")
@@ -57,8 +41,29 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + "/getshortenurl"
 
 	req, _ := http.NewRequest("POST", BACKEND_SERVICE, r.Body)
-	// Set the X-Forwarded-For header
-	req.Header.Set("X-Forwarded-For", client_ip)
+
+	if ok {
+		resp := userauth(username, password)
+
+		if resp.Status != 200 {
+			_ = writeJSON(w, resp.Status, resp)
+			return
+		} else {
+			fmt.Fprintf(w, "Authenticated successfully, welcome %s\n", username)
+			// Set the X-Forwarded-For header
+			req.Header.Set("X-Forwarded-For", client_ip)
+			req.Header.Set("userType", "authenticated")
+		}
+
+	} else {
+		fmt.Printf("Basic Auth header not present so proceeding as a guest user")
+		// Set the X-Forwarded-For header
+		req.Header.Set("X-Forwarded-For", client_ip)
+		req.Header.Set("userType", "guest")
+
+	}
+
+	log.Println("fetching response from urlshortener service")
 
 	client := &http.Client{}
 	response, err := client.Do(req)
@@ -70,22 +75,34 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	body, _ := ioutil.ReadAll(response.Body)
 	fmt.Println(string(body))
 
-	// Unmarshal JSON response into URLCollection struct
-	var resp models.URLCollection
-	err = json.Unmarshal(body, &resp)
-	if err != nil {
-		panic(err)
-	}
+	if response.StatusCode != 200 {
+		var resp models.AuthResponse
+		err = json.Unmarshal(body, &resp)
+		if err != nil {
+			panic(err)
+		}
+		_ = writeJSONerror(w, resp.Status, resp.Message)
+		return
 
-	log.Println(resp)
+	} else {
 
-	successResp := models.SuccessResponse{
-		Response: resp,
-	}
+		// Unmarshal JSON response into URLCollection struct
+		var resp models.URLCollection
 
-	err = writeJSON(w, http.StatusOK, successResp)
-	if err != nil {
-		log.Println("error while writing json response to frontend request", err)
+		err = json.Unmarshal(body, &resp)
+		if err != nil {
+			panic(err)
+		}
+		log.Println(resp)
+
+		successResp := models.SuccessResponse{
+			Response: resp,
+		}
+		err = writeJSON(w, http.StatusOK, successResp)
+		if err != nil {
+			log.Println("error while writing json response to frontend request", err)
+		}
+
 	}
 
 }
