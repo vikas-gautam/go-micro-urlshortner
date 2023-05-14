@@ -9,6 +9,7 @@ import (
 
 func routes() http.Handler {
 
+	app := new(application)
 	mux := chi.NewRouter()
 	//specifiy who is allowed to connect to
 	mux.Use(cors.Handler(cors.Options{
@@ -24,7 +25,7 @@ func routes() http.Handler {
 	mux.Handle("/static/*", http.StripPrefix("/static", fileServer))
 
 	mux.Get("/", homepage)
-	mux.Post("/getShortUrl", urlShortener)
+	mux.Post("/getShortUrl", app.basicAuth(app.urlShortener))
 	mux.Get("/{id}", resolveURL)
 
 	mux.Post("/user/signup", signup)

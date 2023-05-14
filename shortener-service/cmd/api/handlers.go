@@ -54,7 +54,9 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	client_ip := r.Header.Get("X-Forwarded-For")
 	userType := r.Header.Get("userType")
 
-	if userType != "authenticated" {
+	fmt.Println("printing userType header", userType)
+
+	if userType != "Authenticated" {
 
 		//Checking whether the request has already existing source ip
 		counter, err := data.CheckSourceIpExistence(client_ip)

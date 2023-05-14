@@ -16,6 +16,10 @@ import (
 	"github.com/vikas-gautam/go-micro-urlshortner/frontend/cmd/models"
 )
 
+type application struct {
+	Header models.Header
+}
+
 //go:embed templates
 var templateFS embed.FS
 
@@ -28,12 +32,9 @@ func homepage(w http.ResponseWriter, r *http.Request) {
 }
 
 // urlshortener test
-func urlShortener(w http.ResponseWriter, r *http.Request) {
+func (app *application) urlShortener(w http.ResponseWriter, r *http.Request) {
 
-	//checking whether the user is guest or signedup
-	username, password, ok := r.BasicAuth()
-	log.Printf("username: %v, password: %v, ok: %v", username, password, ok)
-
+	//here requests should come with headers as per condition
 	//fetch client_ip from request
 	client_ip := r.Header.Get("X-Forwarded-For")
 
@@ -41,27 +42,8 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + "/getshortenurl"
 
 	req, _ := http.NewRequest("POST", BACKEND_SERVICE, r.Body)
-
-	if ok {
-		resp := userauth(username, password)
-
-		if resp.Status != 200 {
-			_ = writeJSON(w, resp.Status, resp)
-			return
-		} else {
-			fmt.Fprintf(w, "Authenticated successfully, welcome %s\n", username)
-			// Set the X-Forwarded-For header
-			req.Header.Set("X-Forwarded-For", client_ip)
-			req.Header.Set("userType", "authenticated")
-		}
-
-	} else {
-		fmt.Printf("Basic Auth header not present so proceeding as a guest user")
-		// Set the X-Forwarded-For header
-		req.Header.Set("X-Forwarded-For", client_ip)
-		req.Header.Set("userType", "guest")
-
-	}
+	req.Header.Set("X-Forwarded-For", client_ip)
+	req.Header.Set("userType", app.Header.UserType)
 
 	log.Println("fetching response from urlshortener service")
 
@@ -73,7 +55,9 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	defer response.Body.Close()
 	body, _ := ioutil.ReadAll(response.Body)
-	fmt.Println(string(body))
+
+	fmt.Println("printing response body fetched from shortener-service", string(body))
+	fmt.Println("Printing response.StatusCode", response.StatusCode)
 
 	if response.StatusCode != 200 {
 		var resp models.AuthResponse
@@ -93,7 +77,8 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		log.Println(resp)
+
+		log.Printf("going to write resp in struct", resp)
 
 		successResp := models.SuccessResponse{
 			Response: resp,
@@ -237,4 +222,38 @@ func userauth(username, password string) models.AuthResponse {
 	log.Println(resp)
 	return resp
 
+}
+
+func (app *application) basicAuth(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract the username and password from the request
+		// Authorization header. If no Authentication header is present
+		// or the header value is invalid, then the 'ok' return value
+		// will be false.
+
+		//checking whether the user is guest or signedup
+		username, password, ok := r.BasicAuth()
+		log.Printf("username: %v, password: %v, ok: %v", username, password, ok)
+
+		if ok {
+			resp := userauth(username, password)
+
+			if resp.Status != 200 {
+				_ = writeJSON(w, resp.Status, resp)
+				return
+			} else {
+				fmt.Fprintf(w, "Authenticated successfully, welcome %s\n", username)
+				// Set the UserType For header
+				app.Header.UserType = "Authenticated"
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		fmt.Printf("Basic Auth header not present so proceeding as a guest user")
+
+		app.Header.UserType = "Guest"
+		next.ServeHTTP(w, r)
+
+	})
 }

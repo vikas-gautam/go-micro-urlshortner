@@ -12,3 +12,12 @@ type AuthResponse struct {
 	Status  int
 	Message string
 }
+
+type Application struct {
+	Header Header
+}
+
+type Header struct {
+	XForwardedFor string
+	UserType      string
+}

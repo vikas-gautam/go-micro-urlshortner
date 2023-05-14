@@ -11,7 +11,6 @@ const (
 )
 
 func main() {
-
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", webPort),
 		Handler: routes(),
@@ -25,4 +24,3 @@ func main() {
 
 	log.Printf("Starting urlshortener frontend  on port %s\n", webPort)
 }
-
