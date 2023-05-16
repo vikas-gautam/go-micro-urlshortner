@@ -231,6 +231,7 @@ func UpdateURLGenerateRestrictions(source_ip string) error {
 			log.Println(err)
 			return err
 		}
+		return nil
 	} else if err != nil {
 		return err
 	}

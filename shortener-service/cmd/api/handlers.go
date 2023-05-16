@@ -47,103 +47,39 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 		log.Println("error while decoding", err)
 	}
 
-	// Initialize GeneratedId to an empty string
-	GeneratedId := ""
-
 	//get the client_ip that we have set up in frontend
 	client_ip := r.Header.Get("X-Forwarded-For")
 	userType := r.Header.Get("userType")
+	email := r.Header.Get("email")
 
-	fmt.Println("printing userType header", userType)
-
-	if userType != "Authenticated" {
-
-		//Checking whether the request has already existing source ip
+	if userType == "Guest" {
 		counter, err := data.CheckSourceIpExistence(client_ip)
-		if err == sql.ErrNoRows {
-			log.Println("No rows has been matched for given source_ip (new user)\n", err)
-			//that means it's new user
-			GeneratedId, err = shortenURL(requestData.Url, client_ip)
-			if err != nil {
-				log.Println("error while generating short url for new user", err)
-				msg := fmt.Sprintf("error while generating short url for new user: %v", err)
-				_ = writeJSONerror(w, http.StatusInternalServerError, msg)
-				return
-			}
-		} else if err != nil {
-			log.Println("error while checking ip existence in database", err)
-			msg := fmt.Sprintf("error while checking ip existence in database: %v", err)
+		fmt.Println("Printing counter while checking source_ip existence", counter)
+		if err != sql.ErrNoRows && err != nil {
+			msg := "Internal server error"
 			_ = writeJSONerror(w, http.StatusInternalServerError, msg)
 			return
 		}
 
-		//check if counter is less than 5
-		if counter < 5 {
-			GeneratedId, err = shortenURL(requestData.Url, client_ip)
-			if err != nil {
-				log.Println("error while generating short url for new user", err)
-				msg := fmt.Sprintf("error while generating short url for new user: %v", err)
-				_ = writeJSONerror(w, http.StatusInternalServerError, msg)
-				return
-			}
-
-			err = data.UpdateURLGenerateRestrictions(client_ip)
-			if err != nil {
-				log.Println("error while updating counter of matching source_ip", err)
-				msg := fmt.Sprintf("error while updating counter of matching source_ip: %v", err)
-				_ = writeJSONerror(w, http.StatusInternalServerError, msg)
-				return
-			}
-		} else {
-			err = data.UpdateStatusURLGenerateRestrictions(client_ip)
+		if counter >= 5 {
 			log.Println("You have reached the limit, and status has been set to Blocked")
-			if err != nil {
-				log.Println("error while updating status of matching source_ip", err)
-				msg := fmt.Sprintf("error while updating status of matching source_ip: %v", err)
-				_ = writeJSONerror(w, http.StatusInternalServerError, msg)
-				return
-			}
+			err = data.UpdateStatusURLGenerateRestrictions(client_ip)
+			log.Println(err)
 			msg := "You have reached the limit, please signup and try again"
 			_ = writeJSONerror(w, http.StatusTooManyRequests, msg)
 			return
 		}
 
-		//shortened url has been generated & saved
-		var resp models.ResponsePayload
-
-		// if u r using shortener-service api
-		resp.ShortUrl = FrontendDomain + "/" + GeneratedId
-
-		resp.ActualURL = requestData.Url
-
-		//inserting this mapping in click counter
-		var mappingClickCounter models.URLClickCounter
-
-		mappingClickCounter.ShortURL = resp.ShortUrl
-		mappingClickCounter.ClickCounter = 0
-
-		//save the mapping into the database
-		err = data.InsertURLClickCounter(mappingClickCounter)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		err = writeJSON(w, http.StatusOK, resp)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+		//this is handling new user i.e. err == no rows
+		err = data.UpdateURLGenerateRestrictions(client_ip)
+		log.Println(err)
 
 	}
 
-	GeneratedId, err = shortenURL(requestData.Url, client_ip)
-	if err != nil {
-		log.Println("error while generating short url for new user", err)
-		msg := fmt.Sprintf("error while generating short url for new user: %v", err)
-		_ = writeJSONerror(w, http.StatusInternalServerError, msg)
-		return
-	}
+	GeneratedId, _ := shortenURL(requestData.Url, client_ip, userType, email)
+
+	//this will run when the short url has been generated
+
 	//shortened url has been generated & saved
 	var resp models.ResponsePayload
 
@@ -154,7 +90,6 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	//inserting this mapping in click counter
 	var mappingClickCounter models.URLClickCounter
-
 	mappingClickCounter.ShortURL = resp.ShortUrl
 	mappingClickCounter.ClickCounter = 0
 

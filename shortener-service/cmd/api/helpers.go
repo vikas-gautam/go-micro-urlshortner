@@ -56,14 +56,14 @@ func writeJSONerror(w http.ResponseWriter, status int, msg string) error {
 }
 
 // actual logic to shorten the url
-func shortenURL(request_url string, client_ip string) (string, error) {
+func shortenURL(request_url , client_ip, user_type, email string) (string, error) {
 
 	//logic to shorten the actual url in the request payload
 	id := uuid.New().String()[:5]
 
 	log.Println("printing client_ip that we have set in frontend: ", client_ip)
 
-	newMapping := models.URLMapping{Url: request_url, Generated_id: id, Source_ip: client_ip}
+	newMapping := models.URLMapping{Url: request_url, Generated_id: id, Source_ip: client_ip, User_type: user_type, Email: email}
 
 	//save the mapping into the database
 	GeneratedId, err := data.InsertUrl(newMapping)

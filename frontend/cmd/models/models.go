@@ -13,11 +13,8 @@ type AuthResponse struct {
 	Message string
 }
 
-type Application struct {
-	Header Header
-}
-
 type Header struct {
 	XForwardedFor string
 	UserType      string
+	Email         string
 }

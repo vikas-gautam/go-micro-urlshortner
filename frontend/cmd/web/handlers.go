@@ -44,6 +44,7 @@ func (app *application) urlShortener(w http.ResponseWriter, r *http.Request) {
 	req, _ := http.NewRequest("POST", BACKEND_SERVICE, r.Body)
 	req.Header.Set("X-Forwarded-For", client_ip)
 	req.Header.Set("userType", app.Header.UserType)
+	req.Header.Set("email", app.Header.Email)
 
 	log.Println("fetching response from urlshortener service")
 
@@ -245,6 +246,7 @@ func (app *application) basicAuth(next http.HandlerFunc) http.HandlerFunc {
 				fmt.Fprintf(w, "Authenticated successfully, welcome %s\n", username)
 				// Set the UserType For header
 				app.Header.UserType = "Authenticated"
+				app.Header.Email = username
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -253,6 +255,7 @@ func (app *application) basicAuth(next http.HandlerFunc) http.HandlerFunc {
 		fmt.Printf("Basic Auth header not present so proceeding as a guest user")
 
 		app.Header.UserType = "Guest"
+		app.Header.Email = username
 		next.ServeHTTP(w, r)
 
 	})
