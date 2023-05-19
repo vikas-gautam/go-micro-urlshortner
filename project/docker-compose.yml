@@ -41,8 +41,12 @@ services:
       replicas: 1
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=urls sslmode=disable timezone=UTC connect_timeout=5"
-
-
+      QUEUE_NAME: "sqs-test-vg"
+      AWS_REGION: "ap-south-1"
+      AWS_ACCESS_KEY_ID: ""
+      AWS_SECRET_ACCESS_KEY: ""
+      AWS_SESSION_TOKEN: ""
+      
   postgres:
     image: 'postgres:14.2'
     ports:

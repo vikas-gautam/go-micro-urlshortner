@@ -140,6 +140,9 @@ func signup(w http.ResponseWriter, r *http.Request) {
 	writeResponse.Status = http.StatusOK
 	writeResponse.Message = resp
 
+	//sending message to queue
+	go SendMsg()
+
 	err = writeJSON(w, writeResponse.Status, writeResponse)
 	if err != nil {
 		log.Println(err)
