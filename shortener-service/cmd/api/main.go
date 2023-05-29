@@ -27,6 +27,14 @@ func main() {
 		log.Panic("Can't connect to database postgres")
 	}
 
+	//connect to redis cache
+	redisClient := data.ConnectToRedis()
+	if conn == nil {
+		log.Panic("Can't connect to redis")
+	}
+
+	data.ConnectionRedis(redisClient)
+
 	// if u not using method
 	data.Connection(conn)
 

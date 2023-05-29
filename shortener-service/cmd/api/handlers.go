@@ -88,6 +88,13 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 
 	resp.ActualURL = requestData.Url
 
+	//inserting the same in redis
+	err = data.SetData(GeneratedId, resp.ActualURL)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	//inserting this mapping in click counter
 	var mappingClickCounter models.URLClickCounter
 	mappingClickCounter.ShortURL = resp.ShortUrl
@@ -117,20 +124,40 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	log.Println("printing random number id of shortenedURL=>", id)
 
-	//get data from the database on the basis of the id
-	actual_url, err := data.GetUrlByid(id)
-	if err == sql.ErrNoRows {
-		log.Println("No rows has been matched for given id\n", err)
-		//that means id given is not valid
-		msg := "Given shortURL doesn't exist"
-		_ = writeJSONerror(w, http.StatusBadRequest, msg)
-		return
+	// Fetch data from Redis
+	actual_url, err := data.GetData(id)
 
-	} else if err != nil && err != sql.ErrNoRows {
-		log.Printf("error while fetching url by id: %v", err)
-		msg := "Internal server error"
-		_ = writeJSONerror(w, http.StatusInternalServerError, msg)
-		return
+	log.Println("Checking if Actual url exists in redis: ", actual_url)
+
+	// Check if actual_url is nil and fetch from the database if needed
+	if actual_url == "" || err != nil {
+		// Data not found in Redis, fetch from the database
+		actual_url, err = data.GetUrlByid(id)
+
+		// Handle the error if any
+		if err == sql.ErrNoRows {
+			log.Println("No rows have been matched for the given id\n", err)
+			// That means the given id is not valid
+			msg := "Given shortURL doesn't exist"
+			_ = writeJSONerror(w, http.StatusBadRequest, msg)
+			return
+		} else if err != nil {
+			log.Printf("Error while fetching URL by id: %v", err)
+			msg := "Internal server error"
+			_ = writeJSONerror(w, http.StatusInternalServerError, msg)
+			return
+		}
+		//inserting the same in redis
+		log.Println("set mapping of id and actua_url in redis as it doesn't exist")
+		err = data.SetData(id, actual_url)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		log.Println("Cache MISS")
+	} else {
+		log.Println("Cache HIT")
 	}
 
 	//shortened url has been generated & saved

@@ -117,7 +117,7 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 	log.Println("printing random number id of shortenedURL=>", id)
 
 	//creating backend url
-	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + "/signup"
+	BACKEND_SERVICE := os.Getenv("BACKEND_API_URL") + "/" + id
 
 	log.Println(BACKEND_SERVICE)
 

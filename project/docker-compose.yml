@@ -28,6 +28,7 @@ services:
       replicas: 1
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=urls sslmode=disable timezone=UTC connect_timeout=5"
+      REDIS_ENDPOINT: "redis"
 
   auth-service:
     build:
@@ -47,6 +48,12 @@ services:
       AWS_SECRET_ACCESS_KEY: ""
       AWS_SESSION_TOKEN: ""
       
+
+  redis:
+    image: 'redis'
+    ports:
+      - "6379:6379"
+
   postgres:
     image: 'postgres:14.2'
     ports:
