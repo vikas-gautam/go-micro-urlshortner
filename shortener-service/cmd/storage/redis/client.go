@@ -1,17 +1,17 @@
-package data
+package redis
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
 	redis "github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 )
 
 var ctx = context.Background()
 
-func ConnectToRedis() *redis.Client {
+func ConnectToRedis() (*redis.Client, error) {
 	fmt.Println("Go Redis Client")
 	redisEndpoint := os.Getenv("REDIS_ENDPOINT")
 
@@ -23,9 +23,11 @@ func ConnectToRedis() *redis.Client {
 
 	err := redisClient.Ping(ctx).Err()
 	if err != nil {
-		log.Println("Failed to ping Redis:", err)
+		logrus.Errorf("Failed to connect to redis:", err)
+		return redisClient, err
 	}
-	log.Println("Connected to Redis")
+	
 
-	return redisClient
+	logrus.Info("Connected to Redis")
+	return redisClient, nil
 }

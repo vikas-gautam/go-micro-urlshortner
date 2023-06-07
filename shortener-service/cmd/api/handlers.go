@@ -8,20 +8,17 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/data"
-	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/models"
-
 	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
+	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/models"
+	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/storage/db"
+	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/storage/redis"
 )
 
 var FrontendDomain = "http://localhost:8080"
 
-// // to persist the older's request data
-// var mappingList = []models.URLMapping{}
-
 // Healthcheck code
 func healthCheck(w http.ResponseWriter, r *http.Request) {
-	log.Println("shortener-service is healthy and ready to serve")
 	var payload models.HealthPayload
 
 	payload.Status = http.StatusOK
@@ -29,7 +26,7 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 
 	err := writeJSON(w, http.StatusOK, payload)
 	if err != nil {
-		log.Println(err)
+		logrus.Error("error while writing json response:", err)
 		msg := fmt.Sprintf("error while writing json response: %v", err)
 		_ = writeJSONerror(w, http.StatusInternalServerError, msg)
 	}
@@ -37,14 +34,14 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func urlShortener(w http.ResponseWriter, r *http.Request) {
-	log.Println("urlShortener called")
+
 	var requestData models.RequestPayload
 
 	//reads the request payload and save the data into requestData
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(&requestData)
 	if err != nil {
-		log.Println("error while decoding", err)
+		logrus.Error("error while decoding", err)
 	}
 
 	//get the client_ip that we have set up in frontend
@@ -53,27 +50,26 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	email := r.Header.Get("email")
 
 	if userType == "Guest" {
-		counter, err := data.CheckSourceIpExistence(client_ip)
-		fmt.Println("Printing counter while checking source_ip existence", counter)
+		counter, err := db.CheckSourceIpExistence(client_ip)
+		logrus.Info("Printing counter while checking source_ip existence:  ", counter)
+
 		if err != sql.ErrNoRows && err != nil {
-			msg := "Internal server error"
-			_ = writeJSONerror(w, http.StatusInternalServerError, msg)
+			_ = writeJSONerror(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
 
 		if counter >= 5 {
-			log.Println("You have reached the limit, and status has been set to Blocked")
-			err = data.UpdateStatusURLGenerateRestrictions(client_ip)
-			log.Println(err)
-			msg := "You have reached the limit, please signup and try again"
-			_ = writeJSONerror(w, http.StatusTooManyRequests, msg)
+			err = db.UpdateStatusURLGenerateRestrictions(client_ip)
+			logrus.Error("Error while calling UpdateStatusURLGenerateRestrictions", err)
+			_ = writeJSONerror(w, http.StatusTooManyRequests, "You have reached the limit, please signup and try again")
 			return
 		}
 
 		//this is handling new user i.e. err == no rows
-		err = data.UpdateURLGenerateRestrictions(client_ip)
-		log.Println(err)
-
+		err = db.UpdateURLGenerateRestrictions(client_ip)
+		if err != nil {
+			logrus.Error(err)
+		}
 	}
 
 	GeneratedId, _ := shortenURL(requestData.Url, client_ip, userType, email)
@@ -89,9 +85,9 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	resp.ActualURL = requestData.Url
 
 	//inserting the same in redis
-	err = data.SetData(GeneratedId, resp.ActualURL)
+	err = redis.SetData(GeneratedId, resp.ActualURL)
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 		return
 	}
 
@@ -101,15 +97,15 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 	mappingClickCounter.ClickCounter = 0
 
 	//save the mapping into the database
-	err = data.InsertURLClickCounter(mappingClickCounter)
+	err = db.InsertURLClickCounter(mappingClickCounter)
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 		return
 	}
 
 	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 		return
 	}
 
@@ -119,45 +115,37 @@ func urlShortener(w http.ResponseWriter, r *http.Request) {
 // Logic to resolve generated shortenedURL
 
 func resolveURL(w http.ResponseWriter, r *http.Request) {
-	log.Println("resolveURL called")
 
 	id := chi.URLParam(r, "id")
-	log.Println("printing random number id of shortenedURL=>", id)
 
 	// Fetch data from Redis
-	actual_url, err := data.GetData(id)
-
-	log.Println("Checking if Actual url exists in redis: ", actual_url)
+	actual_url, err := redis.GetData(id)
 
 	// Check if actual_url is nil and fetch from the database if needed
 	if actual_url == "" || err != nil {
 		// Data not found in Redis, fetch from the database
-		actual_url, err = data.GetUrlByid(id)
+		actual_url, err = db.GetUrlByid(id)
 
 		// Handle the error if any
 		if err == sql.ErrNoRows {
-			log.Println("No rows have been matched for the given id\n", err)
 			// That means the given id is not valid
-			msg := "Given shortURL doesn't exist"
-			_ = writeJSONerror(w, http.StatusBadRequest, msg)
+			logrus.Error("Error while fetching URL by id: ", err)
+			_ = writeJSONerror(w, http.StatusBadRequest, "Given shortURL doesn't exist")
 			return
 		} else if err != nil {
-			log.Printf("Error while fetching URL by id: %v", err)
-			msg := "Internal server error"
-			_ = writeJSONerror(w, http.StatusInternalServerError, msg)
+			logrus.Error("Error while fetching URL by id: ", err)
+			_ = writeJSONerror(w, http.StatusInternalServerError, "Internal server error")
 			return
 		}
 		//inserting the same in redis
-		log.Println("set mapping of id and actua_url in redis as it doesn't exist")
-		err = data.SetData(id, actual_url)
+		err = redis.SetData(id, actual_url)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-
-		log.Println("Cache MISS")
+		logrus.Info("Cache MISS")
 	} else {
-		log.Println("Cache HIT")
+		logrus.Info("Cache HIT")
 	}
 
 	//shortened url has been generated & saved
@@ -168,30 +156,27 @@ func resolveURL(w http.ResponseWriter, r *http.Request) {
 
 	resp.ActualURL = actual_url
 
-	log.Println("printing response payload", resp)
-
 	//logic to count hits of shortURL
 	var UpdateClickCounter models.URLClickCounter
 
 	UpdateClickCounter.ShortURL = resp.ShortUrl
 
-	err = data.UpdateURLClickCounter(UpdateClickCounter.ShortURL)
+	err = db.UpdateURLClickCounter(UpdateClickCounter.ShortURL)
 	if err != nil {
-		log.Printf("error while updating Click counter: %v", err)
-		msg := fmt.Sprintln("Internal Server Error")
-		_ = writeJSONerror(w, http.StatusInternalServerError, msg)
+
+		logrus.Error("error while updating Click counter: ", err)
+		_ = writeJSONerror(w, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
 	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {
-		log.Println(err)
+		logrus.Error(err)
 	}
 
 }
 
 func urlClickCounter(w http.ResponseWriter, r *http.Request) {
-	log.Println("resolveURL called")
 
 	short_url := r.URL.Query().Get("u")
 
@@ -200,18 +185,16 @@ func urlClickCounter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get data from the database on the basis of the id
-	click_counter, err := data.GetCounterByshortUrl(short_url)
+	click_counter, err := db.GetCounterByshortUrl(short_url)
 	if err == sql.ErrNoRows {
-		log.Println("error while fetching Counter (shortURL): %v", err)
+		logrus.Errorf("error while fetching Counter (shortURL): %v", err)
 		//that means shortURL given doesn't exist
-		msg := "Given shortURL doesn't exist"
-		_ = writeJSONerror(w, http.StatusBadRequest, msg)
+		_ = writeJSONerror(w, http.StatusBadRequest, "Given shortURL doesn't exist")
 		return
 
 	} else if err != nil && err != sql.ErrNoRows {
-		log.Println("error while fetching Counter (shortURL): %v", err)
-		msg := "Internal server error"
-		_ = writeJSONerror(w, http.StatusInternalServerError, msg)
+		logrus.Errorf("error while fetching Counter (shortURL): %v", err)
+		_ = writeJSONerror(w, http.StatusInternalServerError, "Internal server error")
 		return
 	}
 
@@ -221,8 +204,6 @@ func urlClickCounter(w http.ResponseWriter, r *http.Request) {
 	// if u r using shortener-service api
 	resp.ShortUrl = short_url
 	resp.TotalURLClicks = click_counter
-
-	log.Println("printing response payload", resp)
 
 	err = writeJSON(w, http.StatusOK, resp)
 	if err != nil {

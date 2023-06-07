@@ -29,6 +29,7 @@ services:
     environment:
       DSN: "host=postgres port=5432 user=postgres password=password dbname=urls sslmode=disable timezone=UTC connect_timeout=5"
       REDIS_ENDPOINT: "redis"
+      ELASTIC_ENDPOINT: "http://elasticsearch:9200"
 
   auth-service:
     build:
@@ -53,6 +54,14 @@ services:
     image: 'redis'
     ports:
       - "6379:6379"
+
+  elasticsearch:
+    image: 'docker.elastic.co/elasticsearch/elasticsearch:8.4.0'
+    ports:
+      - "9200:9200"
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
 
   postgres:
     image: 'postgres:14.2'

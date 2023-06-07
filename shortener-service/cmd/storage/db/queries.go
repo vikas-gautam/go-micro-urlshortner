@@ -1,8 +1,9 @@
-package data
+package db
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -23,8 +24,6 @@ func InsertUrl(mapping models.URLMapping) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	log.Println(mapping.Source_ip)
-
 	var newID int
 	stmt := `insert into url_mapping (source_ip, generated_id, url, user_type, email, created_at, updated_at)
 		values ($1, $2, $3, $4, $5, $6, $7) returning id`
@@ -38,8 +37,6 @@ func InsertUrl(mapping models.URLMapping) (string, error) {
 		time.Now(),
 		time.Now(),
 	).Scan(&newID)
-
-	log.Println(err)
 
 	if err != nil {
 		return "", err
@@ -88,8 +85,7 @@ func UpdateURLClickCounter(short_url string) error {
 	).Scan(&mapping.ClickCounter)
 
 	if err == sql.ErrNoRows {
-		log.Println("No rows has been matched for given shortURL", err)
-		return fmt.Errorf("no matching row found for short_url=%s", mapping.ShortURL)
+		return errors.New(fmt.Sprintf("UpdateURLClickCounter: %s", err))
 	} else if err != nil {
 		return err
 	}
@@ -97,7 +93,7 @@ func UpdateURLClickCounter(short_url string) error {
 	// Update the ClickCounter column
 	_, err = db.ExecContext(ctx, "UPDATE url_click_counter SET click_counter = click_counter + 1 WHERE short_url=$1", mapping.ShortURL)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("UpdateURLClickCounter: %s", err))
 	}
 
 	return nil
@@ -124,8 +120,7 @@ func GetUrlByid(id string) (string, error) {
 	)
 
 	if err != nil {
-		log.Println(err)
-		return "", err
+		return "", errors.New(fmt.Sprintf("GetUrlByid: %s", err))
 	}
 
 	return data.Url, nil
@@ -149,8 +144,7 @@ func GetCounterByshortUrl(short_url string) (int, error) {
 	)
 
 	if err != nil {
-		log.Println(err)
-		return 0, err
+		return 0, errors.New(fmt.Sprintf("GetCounterByshortUrl: %s", err))
 	}
 
 	return data.ClickCounter, nil
@@ -171,7 +165,6 @@ func CheckSourceIpExistence(source_ip string) (int, error) {
 	)
 
 	if err != nil {
-		log.Println(err)
 		return 0, err
 	}
 
@@ -198,8 +191,7 @@ func InsertURLGenerateRestrictions(mapping models.URLGenerateRestrictions) error
 	).Scan(&newID)
 
 	if err != nil {
-		log.Println(err)
-		return err
+		return errors.New(fmt.Sprintf("InsertURLGenerateRestrictions: %s", err))
 	}
 
 	return nil
@@ -228,18 +220,17 @@ func UpdateURLGenerateRestrictions(source_ip string) error {
 
 		err = InsertURLGenerateRestrictions(mappingRestrictions)
 		if err != nil {
-			log.Println(err)
-			return err
+			return errors.New(fmt.Sprintf("UpdateURLGenerateRestrictions: %s", err))
 		}
 		return nil
 	} else if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("UpdateURLGenerateRestrictions: %s", err))
 	}
 
 	// Update the ClickCounter column
 	_, err = db.ExecContext(ctx, "UPDATE url_generate_restrictions SET counter = counter + 1 WHERE source_ip=$1", mapping.Source_ip)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("UpdateURLGenerateRestrictions: %s", err))
 	}
 
 	return nil
@@ -256,7 +247,7 @@ func UpdateStatusURLGenerateRestrictions(source_ip string) error {
 	// Update the status column
 	_, err := db.ExecContext(ctx, "UPDATE url_generate_restrictions SET status= 'Blocked' WHERE source_ip=$1", mapping.Source_ip)
 	if err != nil {
-		return err
+		return errors.New(fmt.Sprintf("UpdateStatusURLGenerateRestrictions: %s", err))
 	}
 
 	return nil

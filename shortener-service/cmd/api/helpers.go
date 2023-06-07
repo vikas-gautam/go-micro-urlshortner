@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/data"
 	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/models"
+	"github.com/vikas-gautam/go-micro-urlshortner/shortener-service/cmd/storage/db"
 )
 
 // writeJSON takes a response status code and arbitrary data and writes a json response to the client
@@ -56,7 +56,7 @@ func writeJSONerror(w http.ResponseWriter, status int, msg string) error {
 }
 
 // actual logic to shorten the url
-func shortenURL(request_url , client_ip, user_type, email string) (string, error) {
+func shortenURL(request_url, client_ip, user_type, email string) (string, error) {
 
 	//logic to shorten the actual url in the request payload
 	id := uuid.New().String()[:5]
@@ -66,7 +66,7 @@ func shortenURL(request_url , client_ip, user_type, email string) (string, error
 	newMapping := models.URLMapping{Url: request_url, Generated_id: id, Source_ip: client_ip, User_type: user_type, Email: email}
 
 	//save the mapping into the database
-	GeneratedId, err := data.InsertUrl(newMapping)
+	GeneratedId, err := db.InsertUrl(newMapping)
 	if err != nil {
 		log.Println(err)
 		return "", err

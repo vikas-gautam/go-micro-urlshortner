@@ -1,4 +1,4 @@
-package data
+package redis
 
 import (
 	"context"
@@ -6,14 +6,14 @@ import (
 	redis "github.com/redis/go-redis/v9"
 )
 
-var client *redis.Client
+var redisClient *redis.Client
 
-func ConnectionRedis(redisClient *redis.Client) {
-	client = redisClient
+func ConnectionRedis(conn *redis.Client) {
+	redisClient = conn
 }
 
 func SetData(key, value string) error {
-	err := client.Set(context.Background(), key, value, 0).Err()
+	err := redisClient.Set(context.Background(), key, value, 0).Err()
 	if err != nil {
 		return err
 	}
@@ -21,7 +21,7 @@ func SetData(key, value string) error {
 }
 
 func GetData(key string) (string, error) {
-	val, err := client.Get(context.Background(), key).Result()
+	val, err := redisClient.Get(context.Background(), key).Result()
 	if err != nil {
 		return "", err
 	}

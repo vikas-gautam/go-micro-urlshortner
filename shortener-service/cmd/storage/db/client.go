@@ -1,14 +1,14 @@
-package data
+package db
 
 import (
 	"database/sql"
-	"log"
 	"os"
 	"time"
 
 	_ "github.com/jackc/pgconn"
 	_ "github.com/jackc/pgx/v4"
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/sirupsen/logrus"
 )
 
 var counts int64
@@ -28,24 +28,26 @@ func openDB(dsn string) (*sql.DB, error) {
 
 }
 
-func ConnectToDB() *sql.DB {
+func ConnectToDB() (*sql.DB, error) {
 	dsn := os.Getenv("DSN")
 
 	for {
 		connection, err := openDB(dsn)
 		if err != nil {
-			log.Println("Postgres is not ready yet...", err)
+			logrus.Warnf("Postgres is not ready yet...", err)
 			counts++
+
 		} else {
-			log.Println("Connected to postgres")
-			return connection
+			logrus.Infof("Connected to postgres")
+			return connection, nil
 		}
 
 		if counts > 10 {
-			log.Println(err)
+			logrus.Error(err)
+			return connection, err
 		}
 
-		log.Println("Backing off for 2 seconds...")
+		logrus.Infof("Backing off for 2 seconds ..")
 		time.Sleep(2 * time.Second)
 		continue
 
